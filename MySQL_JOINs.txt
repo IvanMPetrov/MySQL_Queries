@@ -1,0 +1,178 @@
+DELIMITER $$
+CREATE FUNCTION udf_RemoveVillainReleaseMinionsReturnCount( insert_id INT )
+RETURNS INT 
+DETERMINISTIC
+BEGIN
+DECLARE count INT;
+SET count := (SELECT COUNT(m.id) FROM villains as v
+JOIN minions_villains as mv ON mv.villain_id = v.id
+JOIN minions as m ON m.id = mv.minion_id WHERE villain_id = insert_id
+GROUP BY villain_id);
+
+UPDATE minions_villains
+SET villain_id = NULL WHERE villain_id = insert_id;
+
+DELETE FROM villains as v WHERE v.id = insert_id;
+RETURN count;
+END $$
+DELIMITER ;
+
+
+ --------------------------------------------------------------------------------------
+
+
+SELECT c.country_code , m.mountain_range, p.peak_name, p.elevation FROM countries as c
+JOIN mountains_countries as mc ON c.country_code = mc.country_code
+JOIN mountains as m ON m.id = mc.mountain_id
+JOIN peaks as p ON p.mountain_id = m.id
+WHERE c.country_code = 'BG' AND p.elevation > 2835
+ORDER BY p.elevation DESC;
+
+
+ ---------------------------------------------------------------------------------------
+
+
+SELECT c.country_code , COUNT(m.mountain_range) as 'mountain_range' FROM countries as c
+JOIN mountains_countries as mc ON c.country_code = mc.country_code
+JOIN mountains as m ON m.id = mc.mountain_id
+WHERE c.country_code IN('BG','RU','US')
+GROUP BY c.country_code
+ORDER BY mountain_range DESC;
+
+
+
+ ---------------------------------------------------------------------------------------
+
+
+SELECT c.country_name , r.river_name FROM countries as c
+LEFT JOIN countries_rivers as cr ON c.country_code = cr.country_code
+LEFT JOIN rivers as r ON cr.river_id = r.id
+WHERE c.continent_code = 'AF'
+ORDER BY c.country_name LIMIT 5;
+
+
+ ---------------------------------------------------------------------------------------
+
+
+SELECT DISTINCT c.country_name,
+ MAX(p.elevation) as 'highest_peak_elevation',
+ MAX(r.length) as 'longest_river_length'FROM countries as c
+ 
+LEFT JOIN mountains_countries as mc ON mc.country_code = c.country_code
+LEFT JOIN mountains as m ON m.id = mc.mountain_id
+LEFT JOIN peaks as p ON p.mountain_id = m.id
+LEFT JOIN countries_rivers as cr ON cr.country_code = c.country_code
+LEFT JOIN rivers as r ON r.id = cr.river_id
+
+GROUP BY c.country_code
+ORDER BY highest_peak_elevation DESC,longest_river_length DESC,c.country_name LIMIT 5;
+
+
+
+ ----------------------------------------------------------------------------------------
+
+
+
+SELECT e.employee_id, 
+CONCAT_WS(' ',e.first_name,e.last_name)as 'employee_name',
+CONCAT_WS(' ',em.first_name,em.last_name) as 'manager_name',
+d.`name` as 'department_name'
+FROM employees as e
+JOIN employees as em ON e.manager_id = em.employee_id
+JOIN departments as d ON d.department_id = e.department_id 
+WHERE e.manager_id IS NOT NULL 
+ORDER BY e.employee_id LIMIT 5;
+
+
+ ------------------------------------------------------------------------------
+
+
+SELECT e.first_name, e.last_name, t.`name` ,a.address_text FROM employees AS e
+JOIN addresses AS a
+ON e.address_id = a.address_id
+JOIN towns as t
+ON t.town_id = a.town_id
+ORDER BY e.first_name,e.last_name LIMIT 5;
+
+ -----------------------------------------------------------------------------
+
+
+SELECT e.employee_id, e.first_name, e.last_name, d.`name` FROM employees as e 
+JOIN departments as d
+ON e.department_id = d.department_id
+WHERE d.`name` = 'Sales'
+ORDER BY employee_id DESC;
+
+
+ -----------------------------------------------------------------------------
+
+
+SELECT 
+    e.employee_id, e.first_name, e.salary, d.`name`
+FROM
+    employees AS e
+        JOIN
+    departments AS d ON e.department_id = d.department_id
+WHERE
+    e.salary > 15000
+ORDER BY d.department_id DESC LIMIT 5;
+
+
+
+ -----------------------------------------------------------------------------
+
+
+SELECT e.employee_id, e.first_name FROM employees as e
+LEFT JOIN employees_projects as ep ON e.employee_id = ep.employee_id
+WHERE ep.project_id IS NULL
+ORDER BY e.employee_id DESC LIMIT 3;
+
+
+ ------------------------------------------------------------------------------
+
+
+SELECT e.first_name, e.last_name, e.hire_date , d.`name` FROM employees as e
+JOIN departments as d ON d.department_id = e.department_id
+WHERE d.`name` IN('Sales','Finance') AND e.hire_date > '1999-01-01'
+ORDER BY e.hire_date ASC;
+
+
+ ------------------------------------------------------------------------------
+
+
+SELECT 
+    ep.employee_id, e.first_name, p.`name` AS 'project_name'
+FROM
+    employees AS e
+        JOIN
+    employees_projects AS ep ON ep.employee_id = e.employee_id
+        JOIN
+    projects AS p ON p.project_id = ep.project_id
+WHERE
+    p.start_date > '2002-08-13 23:59:59'
+        AND p.end_date IS NULL
+ORDER BY e.first_name , p.`name`
+LIMIT 5;
+
+
+ --------------------------------------------------------------------------------
+
+
+SELECT e.employee_id, e.first_name,
+IF(YEAR(p.start_date) < 2005,p.`name`,NULL) 
+FROM employees as e 
+JOIN employees_projects as ep ON e.employee_id = ep.employee_id
+JOIN projects as p ON ep.project_id = p.project_id
+WHERE e.employee_id = 24
+ORDER BY p.`name` ASC; 
+
+
+ --------------------------------------------------------------------------------
+
+
+SELECT e.employee_id, e.first_name, e.manager_id,em.first_name 
+FROM employees as e
+JOIN employees as em ON e.manager_id = em.employee_id
+WHERE e.manager_id IN (3,7)
+ORDER BY e.first_name;
+
